@@ -3,7 +3,18 @@ import fs from 'fs'
 
 import { Transaction } from './interfaces'
 
-const workRequired = "0000"
+enum Difficulty {
+    Ten = "0000000000",
+    Nine = "000000000",
+    Eight = "00000000",
+    Seven = "0000000",
+    Six = "000000",
+    Five = "00000",
+    Four = "0000",
+    Three = "000",
+    Two = "00",
+    One = "0"
+}
 
 
 export class Ledger{
@@ -194,7 +205,7 @@ export class BlockChain {
      * @example const isGuessCorrect : boolean = BlockChain.verifyGuess(block, 1683); 
      **/
     public static verifyGuess(block : Block, guess: number){
-        return sha256(block.getHash + guess.toString()).toString().endsWith(workRequired);
+        return sha256(block.getHash + guess.toString()).toString().endsWith(Difficulty.Four);
     }
 
     /**

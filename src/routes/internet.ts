@@ -22,8 +22,8 @@ export const internet : Router = express.Router();
 /**
  Asks the node to get the total coins of the given user.
  **/
-internet.post(INTER.WALLET_AMOUNT_PARAMS, ( req , res) => {
-    const { user } = req.params;
+internet.get(INTER.WALLET_AMOUNT, ( req , res) => {
+    const user : string = req.query.user as string;
     const amount = network.getWalletAmount(user);
     res.status(200).json(amount);
 })

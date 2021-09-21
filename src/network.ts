@@ -2,19 +2,15 @@ import { Ledger } from './blockchain';
 import Heap from 'heap';
 import axios from 'axios';
 import fs from 'fs'
-import { validateIP } from './util';
-import { NodeAddress } from './interfaces';
+import { validateIP , validateJson } from './util';
 import { INTRA, INTER } from './routes/__ROUTE__DEF__';
 
 export class Network {
 
     private nodesAsciiDelim = '»';
 
-    /** This is a set of JSON strings that reprsent various network nodes
-     * For those curious, this was done because javaScript sets are by default
-     * shallow sets, and implementing a deepSet would create enormous performance costs.
-     * Considering that these network node gossips could be happening constantly I
-     * believe that the loss of simplicity is worth it.
+    /** 
+     * This is a set of ips and ports to intranet blockchain nodes.
      **/
     public nodeSet : Set<string>
     /** This contains the URI to the list of available nodes on the network**/
@@ -36,25 +32,9 @@ export class Network {
         fs.readFileSync(this.nodeListURI, {encoding: 'utf-8', flag: 'a+'})
             .split(this.nodesAsciiDelim)
             .slice(0, -1)
-            .forEach( (str) => {
-                const [address , port] = str.split(':');
-                this.nodeSet.add( JSON.stringify({address: address, port: Number.parseInt(port)}) );
-            })
+            .forEach( str => this.nodeSet.add(str))
     }
 
-    /**
-     * This is a address creation static helper function to help you make node addresses
-     * that are guranteed to be valid for network use.
-     * @throws If the address is imporperly formatted, it will throw a SyntaxError
-     * @param address{(string)} The ip address of the new node on the network.
-     * @param port {(number)} The port of the server
-     * @example Network.makeNodeAddress('70.184.64.15, 80');
-     **/
-
-    public static makeNodeAddress(address : string, port : number){
-        validateIP(address, port);
-        return {address: address, port: port};
-    }
 
     /**
      * This will append the network node list with the following network address and port.
@@ -64,26 +44,25 @@ export class Network {
      * @example appendNodeList(nodeAddress : NodeAddress);
      **/
 
-    public appendNodeList(nodeAddress : NodeAddress){
+    public appendNodeList(nodeAddress : string){
+        validateIP(nodeAddress);
         this.readNodeList();
-        if(this.nodeSet.has(JSON.stringify(nodeAddress))) return; // If it is already within the set, no need to add it
-        const { address, port } = nodeAddress;
-        validateIP(address, port);
-        fs.writeFileSync(this.nodeListURI, address + ":" + port + this.nodesAsciiDelim, {flag: 'a+'});
+        if(this.nodeSet.has(nodeAddress)) return; // If it is already within the set, no need to add it
+        fs.writeFileSync(this.nodeListURI, nodeAddress + this.nodesAsciiDelim, {flag: 'a+'});
     }
 
     /**
      * This will delete the network node list with the following network address and port.
      * @throws If the address is imporperly formatted, it will throw a SyntaxError
-     * @param nodeAddress{(NodeAddress)} A valid nodeAddress object
+     * @param nodeAddress{(string)} A string with an ip and port
      * @example deleteNodeList(nodeAddress : NodeAddress);
      **/
 
-    public deleteNodeList(nodeAddress : NodeAddress){
-        const { address, port } = nodeAddress;
-        validateIP(address, port);
+    public deleteNodeList(nodeAddress : string){
+        validateIP(nodeAddress);
+        this.nodeSet.delete(nodeAddress);
         const file = fs.readFileSync(this.nodeListURI, 'utf-8');
-        fs.writeFileSync(this.nodeListURI, file.replace(address + ":" + port + this.nodesAsciiDelim, ''));
+        fs.writeFileSync(this.nodeListURI, file.replace(nodeAddress + this.nodesAsciiDelim, ''));
     }
 
     /**
@@ -125,15 +104,13 @@ export class Network {
      **/
 
     public propogateGet(route : string){
+        this.readNodeList();
         this.nodeSet.forEach( (nodeAddress) =>{
-            const { address, port } = JSON.parse(nodeAddress);
-            axios.get('http://' + address + ":" + port + route).then((res)=> {
+            axios.get('http://' + nodeAddress + route).then((res)=> {
+                console.log("Successfuly Get!")
                 this.propogationSideEffect(route, res.data);
-                this.propogatePost('/intranet' + INTRA.ADD_NODE, JSON.parse(nodeAddress)) //If this node properly responds, alert network peers.
-            }).catch((e)=> {
-                console.log(e.message)
-                console.log(address + ":" + port + route);
-            });
+                this.propogatePost('/intranet' + INTRA.ADD_NODE, {nodeAddress: nodeAddress} ) //If this node properly responds, alert network peers.
+            }).catch((e)=> console.log(e.message));
         })
     }
 
@@ -141,14 +118,15 @@ export class Network {
     /**
      * propogates the network with a post request to the given url and data
      * @param route {(string)}) The route that will propogated
-     * @param data {(Object)} an object whose data specifications will typically be interfaces.
+     * @param data {(Object)} An object that follows JSON format. This is essential for body parser to work.
+     * @example this.propogatePost( '/intranet + INTRA.ADD_NODE, {nodeAddress: "127.0.0.1:200"} )
      **/
 
-    public propogatePost(route : string, data : any){
-        this.nodeSet.forEach( (nodeAddress, index) =>{
-            const { address, port } = JSON.parse(nodeAddress);
-            axios.post('http://' + address + ":" + port + route, data).then(()=> {
-                console.log("Successfuly posted");
+    public propogatePost(route : string, data : Object){
+        validateJson(data);
+        this.nodeSet.forEach( (nodeAddress) =>{
+            axios.post('http://' + nodeAddress + route, data).then(()=> {
+                console.log("Successfuly Post!");
             }).catch((e)=>console.log(e.message));
         });
     }

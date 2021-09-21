@@ -15,6 +15,6 @@ export const INTRA = {
 export const INTER ={
     FORM_CONSENSUS : '/form_consensus',
     GET_CONSENSUS: '/consensus',
-    WALLET_AMOUNT_PARAMS : '/wallet_amount/user/:user',
+    WALLET_AMOUNT : '/wallet_amount',
 
 }
