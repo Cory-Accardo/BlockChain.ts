@@ -10,9 +10,9 @@ export class Ledger{
 
     private ledger : Block[];
     private ledgerAsciiDelim = '»';
-    private ledgerURI;
+    private ledgerURI : string;
 
-    constructor(ledgerURI : string = __dirname + "/.ledger"){
+    constructor(ledgerURI : string =  __dirname + '.ledger'){
 
 
         this.ledgerURI = ledgerURI;
