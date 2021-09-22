@@ -77,10 +77,12 @@ export class Network {
         while( !this.ledgerPool.empty() ){
             const ledger : Ledger = this.ledgerPool.top();
             if (Ledger.verify(ledger)){
+                console.log("Network has come to a consensus!");
                 return ledger;
             }
             this.ledgerPool.pop();
         }
+        console.log("Network was not able to reach a consensus...")
         return null;
     }
 
@@ -107,12 +109,14 @@ export class Network {
         this.readNodeList();
         this.nodeSet.forEach( (nodeAddress) =>{
             axios.get('http://' + nodeAddress + route).then((res)=> {
-                console.log("Successfuly Get!")
+                console.log("GET: " + nodeAddress + route);
                 this.propogationSideEffect(route, res.data);
                 this.propogatePost('/intranet' + INTRA.ADD_NODE, {nodeAddress: nodeAddress} ) //If this node properly responds, alert network peers.
             }).catch((e)=> console.log(e.message));
         })
     }
+
+
 
 
     /**
@@ -126,7 +130,7 @@ export class Network {
         validateJson(data);
         this.nodeSet.forEach( (nodeAddress) =>{
             axios.post('http://' + nodeAddress + route, data).then(()=> {
-                console.log("Successfuly Post!");
+                console.log("POST: " + nodeAddress + route);
             }).catch((e)=>console.log(e.message));
         });
     }

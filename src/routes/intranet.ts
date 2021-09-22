@@ -27,10 +27,9 @@ intranet.get(INTRA.LEDGER, (req, res) =>{
  This is an intranetwork handler that updates its network if a new node was discovered.
  **/
 intranet.post(INTRA.ADD_NODE, (req, res) =>{
-    const {nodeAddress} = req.body;
+    const { nodeAddress } = req.body;
     console.log("ACK - NODE");
-    if(network.nodeSet.has(nodeAddress)) return res.status(200).json("Acknowledged, but ledger not added");
-    network.appendNodeList(nodeAddress)
-    return res.status(200).json("Acknowledged, and ledger added");
+    if( !network.nodeSet.has(nodeAddress)) network.appendNodeList(nodeAddress);
+    return res.status(200);
 })
 

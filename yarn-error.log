@@ -1,5 +1,5 @@
 Arguments: 
-  C:\Program Files\nodejs\node.exe C:\Users\corym\AppData\Roaming\npm\node_modules\yarn\bin\yarn.js add @types/es6-deep-set
+  C:\Program Files\nodejs\node.exe C:\Users\corym\AppData\Roaming\npm\node_modules\yarn\bin\yarn.js add @types/asymmetric-crypto
 
 PATH: 
   C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Program Files\Python37\Scripts\;C:\Program Files\Python37\;C:\Python39\Scripts\;C:\Python39\;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\ProgramData\chocolatey\bin;C:\MinGW\bin;C:\Program Files\Docker\Docker\resources\bin;C:\ProgramData\DockerDesktop\version-bin;C:\Users\corym\AppData\Roaming\nvm;C:\Program Files\nodejs;C:\Users\corym\.cargo\bin;C:\Python39\Scripts\;C:\Python39\;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\ProgramData\chocolatey\bin;C:\MinGW\bin;C:\Program Files\Docker\Docker\resources\bin;C:\ProgramData\DockerDesktop\version-bin;C:\Users\corym\AppData\Local\Microsoft\WindowsApps;C:\Users\corym\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\corym\AppData\Roaming\npm;C:\Users\corym\ch-windows-amd64;C:\Users\corym\AppData\Roaming\nvm;C:\Program Files\nodejs;C:\Users\corym\.ebcli-virtual-env\executables
@@ -14,7 +14,7 @@ Platform:
   win32 x64
 
 Trace: 
-  Error: https://registry.yarnpkg.com/@types%2fes6-deep-set: Not found
+  Error: https://registry.yarnpkg.com/@types%2fasymmetric-crypto: Not found
       at Request.params.callback [as _callback] (C:\Users\corym\AppData\Roaming\npm\node_modules\yarn\lib\cli.js:66988:18)
       at Request.self.callback (C:\Users\corym\AppData\Roaming\npm\node_modules\yarn\lib\cli.js:140662:22)
       at Request.emit (node:events:394:28)

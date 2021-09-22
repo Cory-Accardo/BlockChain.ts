@@ -16,6 +16,9 @@ enum Difficulty {
     One = "0"
 }
 
+const currentDifficulty = Difficulty.Four;
+
+
 
 export class Ledger{
 
@@ -29,7 +32,7 @@ export class Ledger{
         this.ledgerURI = ledgerURI;
         this.ledger = this.readLedger();
         if(this.length == 0){
-            const genesisBlock = new Block(0, "", BlockChain.makeTransaction("Jehova", "Adam", 42));
+            const genesisBlock = new Block(0, "", 0, BlockChain.makeTransaction("Jehova", "Adam", 42));
             this.addBlock(genesisBlock);
         }
 
@@ -93,7 +96,13 @@ export class Ledger{
     public verify(){
         return this.ledger.every( (ele : Block, index : number, array : Block[] ) => {
             if(index == 0) return true; //Skips Genesis block
-            return ( Block.hash(ele) ==  ele.blockhash && Block.hash(array[ele.blockid-1]) == ele.prevhash ) 
+            return ( 
+                Block.hash(ele) ==  ele.blockhash 
+                && 
+                Block.hash(array[ele.blockid-1]) == ele.prevhash 
+                &&
+                Block.hashWithGuess(ele).includes(currentDifficulty)
+                )  
         })
     }
 
@@ -109,7 +118,13 @@ export class Ledger{
     public static verify(ledgerObj : Ledger){
         return ledgerObj.ledger.every( (ele : Block, index : number, array : Block[] ) => {
             if(index == 0) return true; //Skips Genesis block
-            return ( Block.hash(ele) ==  ele.blockhash && Block.hash(array[ele.blockid-1]) == ele.prevhash ) 
+            return ( 
+            Block.hash(ele) ==  ele.blockhash 
+            && 
+            Block.hash(array[ele.blockid-1]) == ele.prevhash 
+            &&
+            Block.hashWithGuess(ele).includes(currentDifficulty)
+            ) 
         })
     }
 
@@ -140,11 +155,15 @@ export class Block{
     public transaction : Transaction; 
     /**The hashed information of this block*/
     public blockhash : string;
+    /**The guess that was used to validate this block*/
+    public guess : number
 
-    constructor(blockid : number, prevhash : string, transaction : Transaction){
+
+    constructor(blockid : number, prevhash : string,  guess: number, transaction : Transaction){
         this.blockid = blockid;
         this.timeStamp = (new Date(Date.now())).toUTCString();
         this.prevhash = prevhash;
+        this.guess = guess;
         this.transaction = transaction; 
         this.blockhash = this.getHash
     }
@@ -157,8 +176,17 @@ export class Block{
         return sha256(block.blockid + block.timeStamp + block.prevhash + block.transaction).toString();
     }
 
+    public static hashWithGuess(block: Block){
+        return sha256(block.blockid + block.timeStamp + block.prevhash + block.transaction + block.guess).toString();
+    }
+
     public get getHash(){
         return sha256(this.blockid + this.timeStamp + this.prevhash + this.transaction).toString();
+    }
+
+    public get getHashWithGuess(){
+        return sha256(this.blockid + this.timeStamp + this.prevhash + this.transaction + this.guess).toString();
+
     }
 
 }
@@ -193,8 +221,8 @@ export class BlockChain {
         return transaction;
     }
 
-    public makeBlock(transaction : Transaction){
-        return new Block(this.ledger.getLastBlock.blockid + 1, this.ledger.getLastBlock.blockhash, transaction);
+    public makeBlock(transaction : Transaction, guess : number){
+        return new Block(this.ledger.getLastBlock.blockid + 1, this.ledger.getLastBlock.blockhash, guess, transaction);
     }
 
      /**
@@ -204,8 +232,8 @@ export class BlockChain {
      * @param guess({number}) The guess that the miner provides
      * @example const isGuessCorrect : boolean = BlockChain.verifyGuess(block, 1683); 
      **/
-    public static verifyGuess(block : Block, guess: number){
-        return sha256(block.getHash + guess.toString()).toString().endsWith(Difficulty.Four);
+    public static verifyGuess(block : Block){
+        return Block.hashWithGuess(block).endsWith(currentDifficulty);
     }
 
     /**
@@ -215,8 +243,8 @@ export class BlockChain {
      @error Will throw EvalError if block fails to be validated.
      **/
 
-    public addBlock(block : Block, guess : number){
-        const isValid : boolean = BlockChain.verifyGuess(block, guess);
+    public addBlock(block : Block){
+        const isValid : boolean = BlockChain.verifyGuess(block);
         if(isValid) this.ledger.addBlock(block);
         else throw EvalError("Miner provided a bad guess");
     }
