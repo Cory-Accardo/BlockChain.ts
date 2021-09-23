@@ -1,5 +1,4 @@
 # BlockChain.ts
-![Logo](./BlockChainLogo.png
 This is a low level blockchain implementation written entirely in TypeScript! It is a work in progress. I begun this project on 9/17/2021.
 
 
