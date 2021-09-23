@@ -1,41 +1,32 @@
 import { Block, BlockChain } from './blockchain'
 import { Transaction } from './interfaces';
 
-const blockchain = new BlockChain();
 
 export class Miner {
 
     /**
-     * A static method that synchronously returns a validated block for a given transaction.
-     * @param transaction A transaction object
-     * @example const block : Block = Miner.validateTransactionSync(transaction : Transaction);
-     * @returns Returns a validated block
-     **/
-    public static validateTransactionSync(transaction : Transaction){
-        let guess = 0;
-        while(true){
-            const newBlock = blockchain.makeBlock(transaction, guess);
-            if(BlockChain.verifyGuess(newBlock)) return newBlock;
-            guess++;
-        }
-    }
-
-    /**
-     * A static method that returns a promise for a validated block for a given transaction.
+     * A static method that returns a promise to add a transaction to the blockchain as soon as it is validated
      * @param transaction A transaction object
      * @example Miner.validateTransaction(transaction : Transaction).then(block => blockChain.addBlock(block)); "
      * @return returns a validated block
      **/
-    public static validateTransaction(transaction : Transaction){
+    public static addTransaction(transaction : Transaction){
         
-        return new Promise <Block> ( ( resolve ) => {
+        return new Promise ( ( resolve ) => {
             let guess = 0;
-            while(true){
-                const newBlock = blockchain.makeBlock(transaction, guess);
-                if(BlockChain.verifyGuess(newBlock)){resolve(newBlock); break;}
-                guess++;
-            }
-        })
+            BlockChain.getLastBlock()
+            .then( (lastBlock : Block) =>{
+                    while(true){
+                        const newBlock = new Block(lastBlock.blockid + 1, lastBlock.blockhash, guess, transaction);
+                        if(BlockChain.verifyGuess(newBlock)){
+                            console.log("Verified");
+                            BlockChain.addBlock(newBlock).then( () => resolve(true));
+                            break;
+                        }
+                        else guess++;
+                    }
+                })
+            })
     }
 }
 

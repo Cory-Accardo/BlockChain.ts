@@ -1,5 +1,5 @@
 import express, { Router } from 'express';
-import { Ledger, BlockChain } from '../blockchain';
+import { Block, BlockChain } from '../blockchain';
 import { Network } from '../network';
 import { INTRA } from './__ROUTE__DEF__';
 
@@ -8,8 +8,6 @@ import { INTRA } from './__ROUTE__DEF__';
  INTERNAL
  **/
 
-const blockchain = new BlockChain();
-const network = new Network();
 export const intranet : Router = express.Router();
 
 
@@ -17,19 +15,20 @@ export const intranet : Router = express.Router();
  This is an intranetwork handler that responds with the current node's ledger
  **/
 
-intranet.get(INTRA.LEDGER, (req, res) =>{
-    const ledger : Ledger = blockchain.ledger.getLedger;
+intranet.get(INTRA.GET_LEDGER, (req, res) =>{
     console.log("ACK - LEDGER");
-    return res.status(200).json(ledger);
+    BlockChain.get().then( (ledger : Array<Block>)=> res.status(200).json(ledger))
 })
 
  /**
  This is an intranetwork handler that updates its network if a new node was discovered.
  **/
 intranet.post(INTRA.ADD_NODE, (req, res) =>{
-    const { nodeAddress } = req.body;
     console.log("ACK - NODE");
-    if( !network.nodeSet.has(nodeAddress)) network.appendNodeList(nodeAddress);
-    return res.status(200);
+    const { nodeAddress } = req.body;
+    Network.readNodeList().then( (nodeSet : Set<string>) => {
+        if(!nodeSet.has(nodeAddress)) Network.appendNodeList(nodeAddress).then(() => res.status(200).json("ACK-NODE (Added!)"))
+        else res.status(200).json("ACK-NODE (Alrady added)")
+    })
 })
 

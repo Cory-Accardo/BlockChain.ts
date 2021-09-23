@@ -1,0 +1,9 @@
+2021/09/23-10:33:17.308 c6c Recovering log #215
+2021/09/23-10:33:17.308 c6c Level-0 table #217: started
+2021/09/23-10:33:17.339 c6c Level-0 table #217: 400 bytes OK
+2021/09/23-10:33:17.339 c6c Delete type=0 #215
+2021/09/23-10:33:17.339 c6c Delete type=3 #213
+2021/09/23-10:33:17.355 23a0 Compacting 4@0 + 1@1 files
+2021/09/23-10:33:17.355 23a0 Generated table #219@0: 1 keys, 400 bytes
+2021/09/23-10:33:17.355 23a0 Compacted 4@0 + 1@1 files => 400 bytes
+2021/09/23-10:33:17.355 23a0 compacted to: files[ 0 1 0 0 0 0 0 ]

@@ -1,3 +1,4 @@
+
 export interface Transaction {
     sender : string // Who sent the payment
     receiver : string //Who received the payment

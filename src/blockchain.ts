@@ -1,7 +1,6 @@
 import sha256 from 'crypto-js/sha256';
-import fs from 'fs'
-
 import { Transaction } from './interfaces'
+import { LEDGER_DB } from './__DATABASE__';
 
 enum Difficulty {
     Ten = "0000000000",
@@ -18,129 +17,6 @@ enum Difficulty {
 
 const currentDifficulty = Difficulty.Four;
 
-
-
-export class Ledger{
-
-    private ledger : Block[];
-    private ledgerAsciiDelim = '»';
-    private ledgerURI : string;
-
-    constructor(ledgerURI : string =  __dirname + '.ledger'){
-
-
-        this.ledgerURI = ledgerURI;
-        this.ledger = this.readLedger();
-        if(this.length == 0){
-            const genesisBlock = new Block(0, "", 0, BlockChain.makeTransaction("Jehova", "Adam", 42));
-            this.addBlock(genesisBlock);
-        }
-
-    }
-
-    /**
-     @return Returns number length of ledger
-     **/
-
-    public get length(){
-        return this.ledger.length;
-    }
-
-    /**
-     @return Returns the last Block in the ledger.
-     **/
-    public get getLastBlock(){
-        return this.ledger[this.length - 1];
-    }
-
-    private readLedger(){
-        return fs.readFileSync(this.ledgerURI, {encoding: 'utf-8', flag: 'a+'})
-        .split(this.ledgerAsciiDelim)
-        .slice(0, -1)
-        .map((ele : string) => JSON.parse(ele));
-    }
-
-    /**
-     *  @internal
-     * This checks the contents of this particular ledger to determine the user's wallet amount.
-     * If you wish to see the consensus wallet amount, use the Network class instead.
-     * @param user ({string}) the unique userID used to identify user.
-     * 
-     **/
-
-    public getWalletAmount(user : string){
-        let total = 0;
-        this.ledger.forEach( (ele : Block ) =>{
-            const {sender, receiver, amount } = ele.transaction;
-            if(sender.includes(user)) total -= amount;
-            if(receiver.includes(user)) total += amount;
-        })
-        return total;
-    }
-
-    /**
-     * A simple getter that returns a freshly read version of the ledger.
-    **/
-
-    public get getLedger(){
-        this.readLedger();
-        return this;
-    }
-
-    /**
-    * This will verify the integrity of the ledger by checking two things for every block:
-    * 1. The hash of the current block is equal to the current block's blockhash property.
-    * 2. The hash of the previous block is equivalent to the current block's prevhash property.
-    @return Returns a boolean response to the question: is the blockchain valid?
-    **/
-    public verify(){
-        return this.ledger.every( (ele : Block, index : number, array : Block[] ) => {
-            if(index == 0) return true; //Skips Genesis block
-            return ( 
-                Block.hash(ele) ==  ele.blockhash 
-                && 
-                Block.hash(array[ele.blockid-1]) == ele.prevhash 
-                &&
-                Block.hashWithGuess(ele).includes(currentDifficulty)
-                )  
-        })
-    }
-
-    /**
-     * This is a static alternative to the instance version of the verify() method. 
-     * @param ledgerObj({Ledger}) this is an instance of a Ledger object.
-     * This will verify the integrity of the ledger by checking two things for every block:
-     * 1. The hash of the current block is equal to the current block's blockhash property.
-     * 2. The hash of the previous block is equivalent to the current block's prevhash property.
-     @return Returns a boolean response to the question: is the blockchain valid?
-     **/
-
-    public static verify(ledgerObj : Ledger){
-        return ledgerObj.ledger.every( (ele : Block, index : number, array : Block[] ) => {
-            if(index == 0) return true; //Skips Genesis block
-            return ( 
-            Block.hash(ele) ==  ele.blockhash 
-            && 
-            Block.hash(array[ele.blockid-1]) == ele.prevhash 
-            &&
-            Block.hashWithGuess(ele).includes(currentDifficulty)
-            ) 
-        })
-    }
-
-    /**
-     *  @internal
-     * This adds a block directly to the ledger, but does NOT check if it is valid.
-     * @param block ({Block}) the block to be added to the ledger
-     * 
-     **/
-    public addBlock(block : Block){
-        fs.writeFileSync(this.ledgerURI, JSON.stringify(block), { flag: 'a+'});
-        fs.writeFileSync(this.ledgerURI, this.ledgerAsciiDelim, { flag: 'a+'});
-        this.ledger = this.readLedger();
-    }
-    
-}
 
 
 export class Block{
@@ -160,6 +36,7 @@ export class Block{
 
 
     constructor(blockid : number, prevhash : string,  guess: number, transaction : Transaction){
+        
         this.blockid = blockid;
         this.timeStamp = (new Date(Date.now())).toUTCString();
         this.prevhash = prevhash;
@@ -167,6 +44,7 @@ export class Block{
         this.transaction = transaction; 
         this.blockhash = this.getHash
     }
+
 
     /**
      * @param block ({Block}) the block to be hashed
@@ -194,16 +72,6 @@ export class Block{
 export class BlockChain {
 
 
-
-     public ledger : Ledger;
-
-    /**
-     * Constructor if user does not pass a ledger URI
-     **/
-    constructor(){
-        this.ledger = new Ledger();
-    }
-
     /**
      * Simplifies the formation of transactions via this static method.
      @param sender({string}) Denotes the author of the block
@@ -221,35 +89,109 @@ export class BlockChain {
         return transaction;
     }
 
-    public makeBlock(transaction : Transaction, guess : number){
-        return new Block(this.ledger.getLastBlock.blockid + 1, this.ledger.getLastBlock.blockhash, guess, transaction);
+
+
+    /**
+     * An function that returns a promise for a virtual Block[] representation of the current ledger
+     * on this node.
+     * @returns Promise
+     * @example Blockchain.get().then( (ledger : Array<Block>) => console.log(ledger));
+     **/
+    public static get(){
+        const ledger : Array<Block> = new Array<Block>();
+        return new Promise <Array<Block>>( (resolve, reject) =>{
+            LEDGER_DB.createReadStream()
+            .on('data', ( {value} ) => ledger.push(JSON.parse(value)))
+            .on('error', () => reject(false))
+            .on('end', () => resolve(ledger))
+        })
     }
 
-     /**
+    /**
      * A public static method that returns a boolean true / false of whether proof of work was validated
      * according to the current requirements of this blockchain.
      * @param block({Block}) The block that will be verified.
-     * @param guess({number}) The guess that the miner provides
-     * @example const isGuessCorrect : boolean = BlockChain.verifyGuess(block, 1683); 
+     * @returns Boolean true / false
+     * @example const isGuessCorrect : boolean = BlockChain.verifyGuess(block); 
      **/
+    
+    public static clear(){
+        return LEDGER_DB.clear();
+    }
+
+
     public static verifyGuess(block : Block){
         return Block.hashWithGuess(block).endsWith(currentDifficulty);
     }
 
     /**
-     * This will perform a proof of work validation. This is the correct way to add a block to the blockchain.
-     @param block{(Transaction)} The block to be added to the blockchain
-     @param guess{(number)} A string generated by the miner who discovered a valid hash.
-     @error Will throw EvalError if block fails to be validated.
+     * A public static method that promises to add a block to the blockchain after performing two validations:
+     * 1. That the block's guess is correct.
+     * 2. That the block's id isn't <= the most recent block's id. All block ids must be sequential.
+     * @param block({Block}) The block that will be verified.
+     * @returns Boolean true / false
+     * @example const isGuessCorrect : boolean = BlockChain.verifyGuess(block); 
      **/
 
-    public addBlock(block : Block){
-        const isValid : boolean = BlockChain.verifyGuess(block);
-        if(isValid) this.ledger.addBlock(block);
-        else throw EvalError("Miner provided a bad guess");
+
+     public static addBlock(block : Block){
+        return new Promise( (resolve, reject) =>{
+            if(!BlockChain.verifyGuess(block)) reject(EvalError("Block's guess is invalid"));
+            BlockChain.getLastBlock().then( (lastBlock : Block) =>{
+                if(block.blockid <= lastBlock.blockid) reject (RangeError("Non-sequential block."));
+                else BlockChain.append(block).then( ()=> resolve(true)).catch( () => reject(true))
+            })
+        })
     }
 
 
+    /**
+     * A public static method that returns a true / false as to whether every block in the blockchain was validated.
+     * It does this by confirming 3 things for every block:
+     * 1. That rehashing the block results in the same hash as the block's blockhash property.
+     * 2. That rehashing the previous block results in the same has as the block's prevhash property.
+     * 3. That the block's guess is valid.
+     * @param block({Block}) The block that will be verified.
+     * @returns Boolean true / false
+     * @example const isGuessCorrect : boolean = BlockChain.verifyGuess(block); 
+     **/
+
+    public static verify(ledger : Array<Block>){
+        return ledger.every( (ele : Block, index : number) => {
+            if(index == 0) return true; //Skips Genesis block
+            return ( 
+            Block.hash(ele) ==  ele.blockhash 
+            && 
+            Block.hash(ledger[ele.blockid-1]) == ele.prevhash 
+            &&
+            Block.hashWithGuess(ele).includes(currentDifficulty)
+            ) 
+        })
+    }
+
+    /**
+     * A public static method that returns a promise for the last block of the blockchain
+     * @returns Promise<Block>
+     * @example const getLastBlock().then( (lastBlock : Block) => console.log(lastBlock) );   
+     **/
+
+    public static getLastBlock(){
+        return new Promise <Block>( (resolve, reject) =>{
+            LEDGER_DB.createReadStream({reverse: true, limit: 1})
+            .on('data', ( {value} ) => resolve(JSON.parse(value)))
+            .on('error', () => reject(false))
+        })
+    }
+
+    /**
+     *  @internal
+     * This adds a block directly to the ledger, but does NOT check if it is valid.
+     * @param block ({Block}) the block to be added to the ledger
+     *  
+     **/
+    public static append(block : Block){
+        return LEDGER_DB.put(block.blockid, JSON.stringify(block));
+    }
 
 }
 

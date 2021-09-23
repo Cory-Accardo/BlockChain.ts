@@ -4,7 +4,6 @@
 import { Address4 , Address6 } from 'ip-address';
 
 export const validateIP = (nodeAddress : string ) => {
-    console.log(nodeAddress);
     const [address, port] = nodeAddress.split(':')
     if 
     ( 

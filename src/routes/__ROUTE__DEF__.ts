@@ -5,16 +5,18 @@
  * Intranet Routes
  **/
 export const INTRA = {
-    ADD_NODE : '/addNode',
-    LEDGER : '/ledger',
+    ADD_NODE : '/add_node',
+    GET_LEDGER : '/get_ledger',
+    ADD_LEDGER : '/add_ledger'
 }
 
 /**
  * Internet Routes
  **/
 export const INTER ={
+    GET_NODES : '/get_nodes',
     FORM_CONSENSUS : '/form_consensus',
-    GET_CONSENSUS: '/consensus',
-    WALLET_AMOUNT : '/wallet_amount',
+    GET_CONSENSUS: '/get_consensus',
+    GET_WALLET_AMOUNT : '/get_wallet_amount',
 
 }

@@ -1,68 +1,75 @@
-import { Ledger } from './blockchain';
 import Heap from 'heap';
 import axios from 'axios';
 import fs from 'fs'
+import { Block, BlockChain } from './blockchain'
 import { validateIP , validateJson } from './util';
 import { INTRA, INTER } from './routes/__ROUTE__DEF__';
+import { NODE_DB, CONSENSUS_CACHE } from './__DATABASE__';
 
 export class Network {
 
-    private nodesAsciiDelim = '»';
-
-    /** 
-     * This is a set of ips and ports to intranet blockchain nodes.
+    /**
+     * This is a public static method that reads the current node list and returns a promise for a set of strings.
+     * @returns Promise for a set of strings that contain node addresses
+     * @example Network.readNodeList
      **/
-    public nodeSet : Set<string>
-    /** This contains the URI to the list of available nodes on the network**/
-    private nodeListURI : string;
-    /** This ledger reprsents this networks derived consensus **/
-    private consensus : Ledger | null;
-    /** This represents the pool of ledgers from the network **/
-    public ledgerPool : Heap <Ledger>;
 
-    constructor(nodeListURI : string = __dirname + '.network'){
-        this.nodeListURI = nodeListURI;
-        this.nodeSet = new Set<string>();
-        this.readNodeList();
-        this.consensus = this.getConsensus;
-        this.ledgerPool = new Heap <Ledger> ( (a : Ledger, b : Ledger) =>  b.length - a.length )
+    public static readNodeList(){
+        const nodeSet = new Set<string>();
+        return new Promise <Set<string>> ( (resolve, reject) =>{
+            NODE_DB.createReadStream()
+            .on('data', ({ key } ) => nodeSet.add(key))
+            .on('error', () => reject(false))
+            .on('end', () => resolve(nodeSet))
+        })
     }
 
-    private readNodeList(){
-        fs.readFileSync(this.nodeListURI, {encoding: 'utf-8', flag: 'a+'})
-            .split(this.nodesAsciiDelim)
-            .slice(0, -1)
-            .forEach( str => this.nodeSet.add(str))
+    public static readConsensusCache(){
+        const ledgerPool = new Heap <Array<Block>> ( (a : Array<Block>, b : Array<Block>) =>  b.length - a.length );
+        return new Promise<Heap<Array<Block>>>( (resolve, reject) => {
+            CONSENSUS_CACHE.hvals("consensus", (err, data) =>{
+            if(data){
+                data.forEach(ledger => ledgerPool.push(JSON.parse(ledger)))
+                resolve(ledgerPool);
+            }
+            if(err) reject(err);
+        })
+    })
+    }
+
+    public static writeConsensusCache(networkAddress : string, ledger : Array<Block>){
+        return new Promise<number>( (resolve, reject) =>{
+            CONSENSUS_CACHE.hset("consensus", networkAddress, JSON.stringify(ledger), (err, reply) =>{
+                if(err) reject(err);
+                resolve(reply);
+            })
+        })
     }
 
 
     /**
      * This will append the network node list with the following network address and port.
-     * Will do nothing if the network already exists.
-     * @throws If the address is imporperly formatted, it will throw a SyntaxError
-     * @param nodeAddress{(NodeAddress)} A valid nodeAddress object
-     * @example appendNodeList(nodeAddress : NodeAddress);
+     * @returns Promise
+     * @throws If the address is improperly formatted, it will throw a SyntaxError
+     * @param nodeAddress a properly formatted node address.
+     * @example appendNodeList("127.0.0.1:80");
      **/
 
-    public appendNodeList(nodeAddress : string){
+    public static appendNodeList(nodeAddress : string) : Promise<any> {
         validateIP(nodeAddress);
-        this.readNodeList();
-        if(this.nodeSet.has(nodeAddress)) return; // If it is already within the set, no need to add it
-        fs.writeFileSync(this.nodeListURI, nodeAddress + this.nodesAsciiDelim, {flag: 'a+'});
+        return NODE_DB.put(nodeAddress, true);
     }
 
     /**
-     * This will delete the network node list with the following network address and port.
+     * This will return a Promise to delete the node with the following network address and port.
      * @throws If the address is imporperly formatted, it will throw a SyntaxError
      * @param nodeAddress{(string)} A string with an ip and port
-     * @example deleteNodeList(nodeAddress : NodeAddress);
+     * @example deleteNodeList("127.0.0.1:80");
      **/
 
-    public deleteNodeList(nodeAddress : string){
+    public static deleteNodeList(nodeAddress : string) : Promise<unknown>{
         validateIP(nodeAddress);
-        this.nodeSet.delete(nodeAddress);
-        const file = fs.readFileSync(this.nodeListURI, 'utf-8');
-        fs.writeFileSync(this.nodeListURI, file.replace(nodeAddress + this.nodesAsciiDelim, ''));
+        return NODE_DB.del('nodeAddress');
     }
 
     /**
@@ -72,18 +79,23 @@ export class Network {
      * 2. The ledger is valid
      **/
 
-    public get getConsensus(){
-        if(!this.ledgerPool) return null;
-        while( !this.ledgerPool.empty() ){
-            const ledger : Ledger = this.ledgerPool.top();
-            if (Ledger.verify(ledger)){
-                console.log("Network has come to a consensus!");
-                return ledger;
+    public static getConsensus(){
+
+        return new Promise<Array<Block>>( (resolve, reject) => {Network.readConsensusCache().then( (ledgerPool) => {
+            if(!ledgerPool) return null;
+            while( !ledgerPool.empty() ){
+                const ledger : Array<Block> = ledgerPool.top();
+                if (BlockChain.verify(ledger)){
+                    console.log("Network has come to a consensus!");
+                    resolve(ledger);
+                }
+                ledgerPool.pop();
             }
-            this.ledgerPool.pop();
-        }
-        console.log("Network was not able to reach a consensus...")
-        return null;
+            console.log("Network was not able to reach a consensus...")
+            reject(null);
+        })
+    })
+    
     }
 
     
@@ -93,8 +105,8 @@ export class Network {
      **/
 
     public getWalletAmount(user : string){
-        if(this.consensus == null) return 0;
-        return this.consensus.getWalletAmount(user);
+        // if(this.consensus == null) return 0;
+        // return this.consensus.getWalletAmount(user);
     }
 
 
@@ -106,13 +118,13 @@ export class Network {
      **/
 
     public propogateGet(route : string){
-        this.readNodeList();
-        this.nodeSet.forEach( (nodeAddress) =>{
-            axios.get('http://' + nodeAddress + route).then((res)=> {
-                console.log("GET: " + nodeAddress + route);
-                this.propogationSideEffect(route, res.data);
-                this.propogatePost('/intranet' + INTRA.ADD_NODE, {nodeAddress: nodeAddress} ) //If this node properly responds, alert network peers.
-            }).catch((e)=> console.log(e.message));
+        Network.readNodeList().then( (nodeSet : Set<string> ) => {
+            nodeSet.forEach( (nodeAddress) =>{
+                axios.get('http://' + nodeAddress + route).then((res)=> {
+                    console.log("GET: " + nodeAddress + route);
+                    Network.propogatePost('/intranet' + INTRA.ADD_NODE, {nodeAddress: nodeAddress} ) //If this node properly responds, alert network peers.
+                }).catch((e)=> console.log(e.message));
+            })
         })
     }
 
@@ -126,13 +138,15 @@ export class Network {
      * @example this.propogatePost( '/intranet + INTRA.ADD_NODE, {nodeAddress: "127.0.0.1:200"} )
      **/
 
-    public propogatePost(route : string, data : Object){
+    public static propogatePost(route : string, data : Object){
         validateJson(data);
-        this.nodeSet.forEach( (nodeAddress) =>{
-            axios.post('http://' + nodeAddress + route, data).then(()=> {
-                console.log("POST: " + nodeAddress + route);
-            }).catch((e)=>console.log(e.message));
-        });
+        Network.readNodeList().then( (nodeSet : Set<string> )=>{
+            nodeSet.forEach( (nodeAddress) =>{
+                axios.post('http://' + nodeAddress + route, data).then(()=> {
+                    console.log("POST: " + nodeAddress + route);
+                }).catch((e)=>console.log(e.message));
+            });
+        })
     }
 
     /**
@@ -141,11 +155,9 @@ export class Network {
      * @param data {(Object)} an object whose data specifications will typically be interfaces.
      **/
 
-    private propogationSideEffect(route : string, data : any){
-        if(route.includes(INTRA.LEDGER)){ //Then we received a Ledger object, which we must add to the ledger pool
-            const ledger : Ledger = data;
-            this.ledgerPool.push(ledger);
-        }
+    private static propogationSideEffect(route : string, data : any){
+
+
     }
     
 
