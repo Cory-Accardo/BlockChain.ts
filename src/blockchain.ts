@@ -115,10 +115,6 @@ export class BlockChain {
      * @example const isGuessCorrect : boolean = BlockChain.verifyGuess(block); 
      **/
     
-    public static clear(){
-        return LEDGER_DB.clear();
-    }
-
 
     public static verifyGuess(block : Block){
         return Block.hashWithGuess(block).endsWith(currentDifficulty);
@@ -129,7 +125,7 @@ export class BlockChain {
      * 1. That the block's guess is correct.
      * 2. That the block's id isn't <= the most recent block's id. All block ids must be sequential.
      * @param block({Block}) The block that will be verified.
-     * @returns Boolean true / false
+     * @returns promise
      * @example const isGuessCorrect : boolean = BlockChain.verifyGuess(block); 
      **/
 
@@ -171,7 +167,7 @@ export class BlockChain {
 
     /**
      * A public static method that returns a promise for the last block of the blockchain
-     * @returns Promise<Block>
+     * @returns Promise for a Block
      * @example const getLastBlock().then( (lastBlock : Block) => console.log(lastBlock) );   
      **/
 
