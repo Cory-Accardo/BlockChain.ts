@@ -1,3 +1,4 @@
+import { Network } from '../network/network';
 import { Block, BlockChain } from './blockchain'
 import { Transaction } from './interfaces';
 
@@ -7,11 +8,10 @@ export class Miner {
     /**
      * A static method that returns a promise to add a transaction to the blockchain as soon as it is validated
      * @param transaction A transaction object
-     * @example Miner.validateTransaction(transaction : Transaction).then(block => blockChain.addBlock(block)); "
      * @return returns a validated block
      **/
-    public static addTransaction(transaction : Transaction){
-        
+    public static async addTransaction(transaction : Transaction){
+        await Network.synchronizeNode().catch( (reason) => console.log("ERR: " + reason));
         return new Promise ( ( resolve ) => {
             let guess = 0;
             BlockChain.getLastBlock()

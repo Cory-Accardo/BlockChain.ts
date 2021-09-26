@@ -1,9 +1,7 @@
-import { Network } from './network'
-import { Block, BlockChain } from './blockchain'
-import { Miner } from './miner'
+import { Network } from './network/network'
+import { Block, BlockChain } from './api/blockchain'
+import { Miner } from './api/miner'
 
 
-const trans = BlockChain.makeTransaction("GOOBO" , "Auditore", 5);
-
-Miner.addTransaction(trans).then( () => BlockChain.get().then ( (data) => console.log(data)));
-
+Miner.addTransaction({sender: "cory", receiver: "funtimes", amount: 42069}).then( (d)=> console.log(d))
+.then( ()=> BlockChain.get().then((data) => console.log(data)))

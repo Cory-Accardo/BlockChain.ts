@@ -3,7 +3,7 @@
 
 
 import { sign, generateKeyPairSync, KeyObject } from 'crypto'
-import { Transaction } from './interfaces';
+import { Transaction } from '../api/interfaces';
 import fs from 'fs'
 
 enum Key {

@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "drive": "npx ts-node ./src/driver.ts",
-    "server": "nodemon ./src/server.ts"
+    "server": "nodemon ./src/network/server.ts"
   },
   "dependencies": {
     "@types/axios": "^0.14.0",

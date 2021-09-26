@@ -1,6 +1,14 @@
 import sha256 from 'crypto-js/sha256';
 import { Transaction } from './interfaces'
-import { LEDGER_DB } from './__DATABASE__';
+import { LEDGER_DB } from '../database/__DATABASE__';
+
+/**
+ * These represent the various difficulties (1-10) that
+ * the Blockchain.verifyGuess method will use
+ * to determine eligibility to enter the ledger.
+ * To easily adjust, simply change the currentDifficulty variable as desired.
+ **/
+
 
 enum Difficulty {
     Ten = "0000000000",
@@ -14,7 +22,6 @@ enum Difficulty {
     Two = "00",
     One = "0"
 }
-
 const currentDifficulty = Difficulty.Four;
 
 
@@ -45,22 +52,44 @@ export class Block{
         this.blockhash = this.getHash
     }
 
+    // A block's Hash is the result of a sha256 on the following properties:
+    // 1. Block's index on the ledger (blockid)
+    // 2. Block's date of creation (timeStamp)
+    // 3. The previous block's hash (prevhash)
+    // 4. The transaction that occured (transaction)
 
     /**
+     * A public static method to hash a block. 
      * @param block ({Block}) the block to be hashed
-     * A static method that returns a hashed string representation of a given block
+     * @returns The hashed string representation of a given block
      **/
     public static hash(block : Block){
         return sha256(block.blockid + block.timeStamp + block.prevhash + block.transaction).toString();
     }
 
+    /**
+     * A public static method to hash a block along with its guess.
+     * @param block ({Block}) the block to be hashed
+     * @returns The hashed string representation of a given block + its guess
+     **/
+
     public static hashWithGuess(block: Block){
         return sha256(block.blockid + block.timeStamp + block.prevhash + block.transaction + block.guess).toString();
     }
 
+    /**
+     * A public member method to hash a block. 
+     * @returns The hashed string representation of a given block
+     **/
+
     public get getHash(){
         return sha256(this.blockid + this.timeStamp + this.prevhash + this.transaction).toString();
     }
+
+    /**
+     * A public member method to hash a block with its guess. 
+     * @returns The hashed string representation of a given block + its guess
+     **/
 
     public get getHashWithGuess(){
         return sha256(this.blockid + this.timeStamp + this.prevhash + this.transaction + this.guess).toString();
@@ -129,15 +158,23 @@ export class BlockChain {
      * @example const isGuessCorrect : boolean = BlockChain.verifyGuess(block); 
      **/
 
-
      public static addBlock(block : Block){
         return new Promise( (resolve, reject) =>{
             if(!BlockChain.verifyGuess(block)) reject(EvalError("Block's guess is invalid"));
             BlockChain.getLastBlock().then( (lastBlock : Block) =>{
                 if(block.blockid <= lastBlock.blockid) reject (RangeError("Non-sequential block."));
-                else BlockChain.append(block).then( ()=> resolve(true)).catch( () => reject(true))
+                else BlockChain.append(block).then( ()=> resolve(true));
             })
         })
+    }
+
+
+    public static async replaceLedger(ledger : Array<Block>){
+        const batchData = ledger.map( (block : Block) => { return {type: 'put', 'key': block.blockid, 'value': JSON.stringify(block as Block)} })
+        // @ts-ignore
+        //For whatever reason, the following batch code is causing the TypeScript compiler to throw errors.
+        //I've even used code directly from the documentation, indicating to me that this is a @types/level-js bug.
+        return await LEDGER_DB.clear().then(()=> LEDGER_DB.batch(batchData))
     }
 
 
@@ -179,15 +216,18 @@ export class BlockChain {
         })
     }
 
+
     /**
      *  @internal
-     * This adds a block directly to the ledger, but does NOT check if it is valid.
+     * This private static method adds a block directly to the ledger, but does NOT check if it is valid.
+     * Returns a promise to write the block directly on the ledger.
      * @param block ({Block}) the block to be added to the ledger
      *  
      **/
-    public static append(block : Block){
+    private static append(block : Block){
         return LEDGER_DB.put(block.blockid, JSON.stringify(block));
     }
+
 
 }
 

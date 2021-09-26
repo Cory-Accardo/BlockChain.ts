@@ -1,6 +1,6 @@
 import express from 'express';
-import { intranet } from './routes/intranet';
-import { internet } from './routes/internet';
+import { intranet } from './intranet';
+import { internet } from './internet';
 
 const node = express();
 node.use(express.json())
