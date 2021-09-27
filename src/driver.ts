@@ -9,7 +9,8 @@ import { verify } from 'crypto';
 const CorysWallet = new Wallet('C:/Users/corym/Desktop/Blockchain/src/api.wallet');
 
 CorysWallet.addTransaction({
-    BOODODODODD: "good"
+    Mom: "good",
+    Epa: "old"
 }).then ( () => {
     BlockChain.get().then( ledger => {
         console.log(BlockChain.verify(ledger))

@@ -24,7 +24,7 @@ enum Difficulty {
     Two = "00",
     One = "0"
 }
-const currentDifficulty = Difficulty.One;
+const currentDifficulty = Difficulty.Five;
 
 
 
@@ -142,7 +142,7 @@ export class BlockChain {
 
     /**
      * A public static method that promises to add a block to the blockchain after performing two validations:
-     * 1. That the block's guess is correct.
+     * 1. That the block's guess and transaction signature are correct.
      * 2. That the block's id isn't <= the most recent block's id. All block ids must be sequential.
      * @param block({Block}) The block that will be verified.
      * @returns promise
@@ -159,13 +159,28 @@ export class BlockChain {
         })
     }
 
+    /**
+     * A public static method that returns a true / false as to whether both the signature and the guess
+     * are correct for a block.
+     **/
+
     public static verifyBlock(block: Block){
         return ( BlockChain.verifySignature(block) && BlockChain.verifyGuess(block) )
     }
 
+    /**
+     * A public static method that returns a true / false as to whether the transaction on the block
+     * was authentically created by the public key associated with that block.
+     **/
+
     public static verifySignature(block : Block){
         return verify('sha256', Buffer.from(JSON.stringify(block.transaction)), block.publicKey, Buffer.from(block.signedTransaction)) 
     }
+
+    /**
+     * A public static method that replaces the ledger database with a new ledger.
+     * @params the ledger({Array of Blocks}) that will replace this current node's ledger_db.
+     **/
 
 
     public static async replaceLedger(ledger : Array<Block>){
