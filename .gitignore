@@ -2,5 +2,5 @@ node_modules/
 *.ledger
 *.network
 *.wallet
-src/ledger_db/
-src/network_db/
+*/ledger_db
+*/network_db

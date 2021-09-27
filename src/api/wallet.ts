@@ -1,7 +1,3 @@
-//This is a work in progress and is not currently functional.
-
-
-
 import { sign, generateKeyPairSync, KeyObject, createPrivateKey, createPublicKey } from 'crypto'
 import { Transaction, TransactionBuffer, WalletKeyPair } from '../api/interfaces';
 import fs from 'fs'
@@ -19,6 +15,7 @@ export class Wallet{
     }
 
     public static generateNewKeys(walletURI : string = __dirname + '.wallet'){
+        console.log(walletURI)
         if (fs.existsSync(walletURI)) fs.unlinkSync(walletURI);
         const {publicKey, privateKey} = generateKeyPairSync('rsa', {modulusLength : 2048})
         Wallet.writeKeys( walletURI, {publicKey, privateKey});
