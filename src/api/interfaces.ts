@@ -1,12 +1,11 @@
 import { Method } from 'axios';
 import { Block } from './blockchain'
 import { NetworkRoute } from '../network/__ROUTE__DEF__';
+import { KeyObject } from 'crypto';
 
-export interface Transaction {
-    sender : string // Who sent the payment
-    receiver : string //Who received the payment
-    amount : number //How much the payment was
-}
+export type Transaction = any //A transaction on the ledger can be any arbitrary piece of data.
+
+export type TransactionBuffer = Buffer;
 
 export interface NetworkRequest{
     route : NetworkRoute //One of the routes defined in __ROUTE__DEF__
@@ -17,4 +16,9 @@ export interface NetworkRequest{
 
 export interface NodeTransport{
     nodeAddress: string //The nodeAddress of the node that would be added to the system.
+}
+
+export interface WalletKeyPair{
+    publicKey: KeyObject,
+    privateKey: KeyObject
 }

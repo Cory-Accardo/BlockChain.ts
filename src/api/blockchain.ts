@@ -1,6 +1,8 @@
 import sha256 from 'crypto-js/sha256';
-import { Transaction } from './interfaces'
+import { Transaction } from './interfaces';
 import { LEDGER_DB } from '../database/__DATABASE__';
+import { KeyObject, verify } from 'crypto';
+import { debug } from 'console';
 
 /**
  * These represent the various difficulties (1-10) that
@@ -22,7 +24,7 @@ enum Difficulty {
     Two = "00",
     One = "0"
 }
-const currentDifficulty = Difficulty.Four;
+const currentDifficulty = Difficulty.One;
 
 
 
@@ -36,20 +38,26 @@ export class Block{
     public prevhash : string; 
     /**A transaction object that describes the transaction*/
     public transaction : Transaction; 
+    /**A signed buffer of this transaction*/
+    public signedTransaction : Buffer; 
     /**The hashed information of this block*/
     public blockhash : string;
     /**The guess that was used to validate this block*/
     public guess : number
+    /**The public key of the sender that was used to validate this block*/
+    public publicKey: string
 
 
-    constructor(blockid : number, prevhash : string,  guess: number, transaction : Transaction){
-        
+
+    constructor(blockid : number, prevhash : string,  guess: number, transaction : Transaction, publicKey : string, signedTransaction : Buffer){
         this.blockid = blockid;
         this.timeStamp = (new Date(Date.now())).toUTCString();
         this.prevhash = prevhash;
         this.guess = guess;
         this.transaction = transaction; 
-        this.blockhash = this.getHash
+        this.publicKey = publicKey;
+        this.signedTransaction = signedTransaction
+        this.blockhash = this.getHash;
     }
 
     // A block's Hash is the result of a sha256 on the following properties:
@@ -64,7 +72,7 @@ export class Block{
      * @returns The hashed string representation of a given block
      **/
     public static hash(block : Block){
-        return sha256(block.blockid + block.timeStamp + block.prevhash + block.transaction).toString();
+        return sha256(block.blockid + block.timeStamp + block.prevhash + block.transaction + block.publicKey).toString();
     }
 
     /**
@@ -74,7 +82,7 @@ export class Block{
      **/
 
     public static hashWithGuess(block: Block){
-        return sha256(block.blockid + block.timeStamp + block.prevhash + block.transaction + block.guess).toString();
+        return sha256(block.blockid + block.timeStamp + block.prevhash + block.transaction + block.publicKey +  block.guess).toString();
     }
 
     /**
@@ -83,7 +91,7 @@ export class Block{
      **/
 
     public get getHash(){
-        return sha256(this.blockid + this.timeStamp + this.prevhash + this.transaction).toString();
+        return sha256(this.blockid + this.timeStamp + this.prevhash + this.transaction + this.publicKey).toString();
     }
 
     /**
@@ -92,31 +100,13 @@ export class Block{
      **/
 
     public get getHashWithGuess(){
-        return sha256(this.blockid + this.timeStamp + this.prevhash + this.transaction + this.guess).toString();
+        return sha256(this.blockid + this.timeStamp + this.prevhash + this.transaction + this.publicKey + this.guess).toString();
 
     }
 
 }
 
 export class BlockChain {
-
-
-    /**
-     * Simplifies the formation of transactions via this static method.
-     @param sender({string}) Denotes the author of the block
-     @param receiver({string}) Denotes the receiving party of the block
-     @param amount({number}) Denotes the number of coints to send
-     @example const newTransaction : Transaction = BlockChain.makeTransaction("Bob", "Sue", 400);
-     **/
-
-    public static makeTransaction(sender : string, receiver : string, amount : number){
-        const transaction : Transaction = {
-            sender : sender,
-            receiver : receiver,
-            amount : amount,
-        }
-        return transaction;
-    }
 
 
 
@@ -146,6 +136,7 @@ export class BlockChain {
     
 
     public static verifyGuess(block : Block){
+        
         return Block.hashWithGuess(block).endsWith(currentDifficulty);
     }
 
@@ -160,7 +151,7 @@ export class BlockChain {
 
      public static addBlock(block : Block){
         return new Promise( (resolve, reject) =>{
-            if(!BlockChain.verifyGuess(block)) reject(EvalError("Block's guess is invalid"));
+            if(!BlockChain.verifyBlock(block)) reject(EvalError("Block is not authenticated"));
             BlockChain.getLastBlock().then( (lastBlock : Block) =>{
                 if(block.blockid <= lastBlock.blockid) reject (RangeError("Non-sequential block."));
                 else BlockChain.append(block).then( ()=> resolve(true));
@@ -168,9 +159,17 @@ export class BlockChain {
         })
     }
 
+    public static verifyBlock(block: Block){
+        return ( BlockChain.verifySignature(block) && BlockChain.verifyGuess(block) )
+    }
+
+    public static verifySignature(block : Block){
+        return verify('sha256', Buffer.from(JSON.stringify(block.transaction)), block.publicKey, Buffer.from(block.signedTransaction)) 
+    }
+
 
     public static async replaceLedger(ledger : Array<Block>){
-        const batchData = ledger.map( (block : Block) => { return {type: 'put', 'key': block.blockid, 'value': JSON.stringify(block as Block)} })
+        const batchData = ledger.map( (block : Block) => { return {type: 'put', 'key': block.blockid, 'value': block as Block } })
         // @ts-ignore
         //For whatever reason, the following batch code is causing the TypeScript compiler to throw errors.
         //I've even used code directly from the documentation, indicating to me that this is a @types/level-js bug.
@@ -197,7 +196,7 @@ export class BlockChain {
             && 
             Block.hash(ledger[ele.blockid-1]) == ele.prevhash 
             &&
-            Block.hashWithGuess(ele).includes(currentDifficulty)
+            BlockChain.verifyBlock(ele)
             ) 
         })
     }

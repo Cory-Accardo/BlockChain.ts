@@ -1,3 +1,4 @@
+import { KeyObject } from 'crypto';
 import level from 'level';
 import redis  from 'redis';
 import { Block, BlockChain } from '../api/blockchain';
@@ -18,7 +19,7 @@ export const LEDGER_DB = level(__dirname + '/ledger_db', () =>{
     .on('end', ()=> {
         if (count == 0) {
             console.log("This is a first boot... spawning origin block");
-            const genesisBlock = new Block(0, "0", 0, {sender : "God", receiver: "Adam", amount:42});
+            const genesisBlock = new Block(0, "0", 0, 0, "", Buffer.from("And the Earth was without form."))
             LEDGER_DB.put(genesisBlock.blockid, JSON.stringify(genesisBlock)).then( () => console.log("BlockChain.ts Ledger Database Initialized..."));
         }
         else console.log("BlockChain.ts Ledger Database Initialized...")
