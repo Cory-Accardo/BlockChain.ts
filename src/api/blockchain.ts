@@ -24,7 +24,7 @@ enum Difficulty {
     Two = "00",
     One = "0"
 }
-const currentDifficulty = Difficulty.Five;
+const currentDifficulty = Difficulty.Four;
 
 
 

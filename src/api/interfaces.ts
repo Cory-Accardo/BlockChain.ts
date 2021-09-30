@@ -3,6 +3,7 @@ import { Block } from './blockchain'
 import { NetworkRoute } from '../network/__ROUTE__DEF__';
 import { KeyObject } from 'crypto';
 
+
 export type Transaction = any //A transaction on the ledger can be any arbitrary piece of data.
 
 export type TransactionBuffer = Buffer;
@@ -19,6 +20,6 @@ export interface NodeTransport{
 }
 
 export interface WalletKeyPair{
-    publicKey: KeyObject,
-    privateKey: KeyObject
+    publicKey: KeyObject, //The public key
+    privateKey: KeyObject //The private key
 }

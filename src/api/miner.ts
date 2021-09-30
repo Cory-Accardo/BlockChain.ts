@@ -15,7 +15,7 @@ export class Miner {
      **/
     public static async addTransaction(transaction : Transaction, publicKey : string, signedTransaction : Buffer){
         // await Network.synchronizeNode().catch( (reason) => console.log("ERR: " + reason));
-        return new Promise ( ( resolve, reject ) => {
+        return new Promise<boolean> ( ( resolve, reject ) => {
             let guess = 0;
             BlockChain.getLastBlock()
             .then( (lastBlock : Block) =>{

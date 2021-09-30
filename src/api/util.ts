@@ -3,6 +3,13 @@
 
 import { Address4 , Address6 } from 'ip-address';
 
+
+/** 
+ * A static internal method that generates writes a pair of keys to the specified wallet URI.
+ * @param nodeAddress A string that is the nodeAddress to be validated.
+ * @throws SyntaxError("Poorly formatted") if the string is poorly formatted
+**/
+
 export const validateIP = (nodeAddress : string ) => {
     const [address, port] = nodeAddress.split(':')
     if 
@@ -14,8 +21,4 @@ export const validateIP = (nodeAddress : string ) => {
 
     ) 
     throw new SyntaxError("Poorly formatted"); 
-}
-
-export const validateJson = (data : Object) => {
-    if(typeof data != 'object') throw TypeError("Data must be in JSON format");
 }
