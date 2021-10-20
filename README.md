@@ -2,7 +2,7 @@
 
 
 # BlockChain.ts
-This is a low level blockchain implementation written entirely in TypeScript! It is a work in progress. I begun this project on 9/17/2021.
+This is a low level blockchain implementation written entirely in TypeScript!
 
 
 # Features
